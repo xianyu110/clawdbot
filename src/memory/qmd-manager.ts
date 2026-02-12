@@ -24,19 +24,12 @@ import { requireNodeSqlite } from "./sqlite.js";
 
 type SqliteDatabase = import("node:sqlite").DatabaseSync;
 import type { ResolvedMemoryBackendConfig, ResolvedQmdConfig } from "./backend-config.js";
+import { parseQmdQueryJson } from "./qmd-query-parser.js";
 
 const log = createSubsystemLogger("memory");
 
 const SNIPPET_HEADER_RE = /@@\s*-([0-9]+),([0-9]+)/;
 const SEARCH_PENDING_UPDATE_WAIT_MS = 500;
-
-type QmdQueryResult = {
-  docid?: string;
-  score?: number;
-  file?: string;
-  snippet?: string;
-  body?: string;
-};
 
 type CollectionRoot = {
   path: string;
@@ -262,23 +255,23 @@ export class QmdMemoryManager implements MemorySearchManager {
       this.qmd.limits.maxResults,
       opts?.maxResults ?? this.qmd.limits.maxResults,
     );
-    const args = ["query", trimmed, "--json", "-n", String(limit)];
+    const collectionFilterArgs = this.buildCollectionFilterArgs();
+    if (collectionFilterArgs.length === 0) {
+      log.warn("qmd query skipped: no managed collections configured");
+      return [];
+    }
+    const args = ["query", trimmed, "--json", "-n", String(limit), ...collectionFilterArgs];
     let stdout: string;
+    let stderr: string;
     try {
       const result = await this.runQmd(args, { timeoutMs: this.qmd.limits.timeoutMs });
       stdout = result.stdout;
+      stderr = result.stderr;
     } catch (err) {
       log.warn(`qmd query failed: ${String(err)}`);
       throw err instanceof Error ? err : new Error(String(err));
     }
-    let parsed: QmdQueryResult[] = [];
-    try {
-      parsed = JSON.parse(stdout);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      log.warn(`qmd query returned invalid JSON: ${message}`);
-      throw new Error(`qmd query returned invalid JSON: ${message}`, { cause: err });
-    }
+    const parsed = parseQmdQueryJson(stdout, stderr);
     const results: MemorySearchResult[] = [];
     for (const entry of parsed) {
       const doc = await this.resolveDocLocation(entry.docid);
@@ -974,5 +967,13 @@ export class QmdMemoryManager implements MemorySearchManager {
       pending.catch(() => undefined),
       new Promise<void>((resolve) => setTimeout(resolve, SEARCH_PENDING_UPDATE_WAIT_MS)),
     ]);
+  }
+
+  private buildCollectionFilterArgs(): string[] {
+    const names = this.qmd.collections.map((collection) => collection.name).filter(Boolean);
+    if (names.length === 0) {
+      return [];
+    }
+    return names.flatMap((name) => ["-c", name]);
   }
 }
