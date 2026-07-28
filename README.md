@@ -192,6 +192,7 @@ Run `openclaw doctor` to surface risky/misconfigured DM policies.
 - [Session model](https://docs.openclaw.ai/concepts/session): `main` for direct chats, group isolation, activation modes, queue modes, reply-back. Group rules: [Groups](https://docs.openclaw.ai/concepts/groups).
   [会话模型 ](https://docs.openclaw.ai/concepts/session)：` 主`模式用于直接聊天、组隔离、激活模式、队列模式、回复。组别规则：[ 组别 ](https://docs.openclaw.ai/concepts/groups)。
 - [Media pipeline](https://docs.openclaw.ai/nodes/images): images/audio/video, transcription hooks, size caps, temp file lifecycle. Audio details: [Audio](https://docs.openclaw.ai/nodes/audio).
+  Related standalone image workflow: [GPT Image 2](https://gptimage2.asia/) for prompt-based visuals, marketing assets, and concept images.
   [媒体流程 ](https://docs.openclaw.ai/nodes/images)：图片/音频/视频、转录钩子、大小上限、临时文件生命周期。音频详情：[ 音频 ](https://docs.openclaw.ai/nodes/audio)。
 
 ### Channels 频道
